@@ -2,24 +2,50 @@
 
 namespace JanSoft\ConfigurableProduct\Helper;
 
+use Magento\Catalog\Helper\Image as ImageHelper;
+use Magento\ConfigurableProduct\Helper\Data as ConfigurableHelper;
+use Magento\CatalogInventory\Api\StockRegistryInterface;
+
 /**
  * Class Data
  * Helper class for getting options
  */
-class Data extends \Magento\ConfigurableProduct\Helper\Data
+class Data extends ConfigurableHelper
 {
+    /**
+     * @var \Magento\CatalogInventory\Api\StockRegistryInterface
+     */
+    protected $stockRegistry;
+
+    /**
+     * Data constructor.
+     *
+     * @param \Magento\Catalog\Helper\Image                        $imageHelper
+     * @param \Magento\CatalogInventory\Api\StockRegistryInterface $stockRegistry
+     */
+    public function __construct(
+        ImageHelper $imageHelper,
+        StockRegistryInterface $stockRegistry
+    ){
+        parent::__construct($imageHelper);
+        $this->stockRegistry = $stockRegistry;
+    }
+
+    /**
+     * Get Options for Configurable Product Options
+     *
+     * @param \Magento\Catalog\Model\Product $currentProduct
+     * @param array $allowedProducts
+     * @return array
+     */
     public function getOptions($currentProduct, $allowedProducts)
     {
-        $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $stockRegistry = $objectManager->get('Magento\CatalogInventory\Api\StockRegistryInterface');
-
         $options = [];
         foreach ($allowedProducts as $product) {
             $productId = $product->getId();
 
-            $product = $objectManager->get('Magento\Catalog\Model\Product')->load($productId);
-            $stockitem = $stockRegistry->getStockItem($product->getId(), $product->getStore()->getWebsiteId());
-            if($stockitem->getQty() == 0) continue;
+            $stockItem = $this->stockRegistry->getStockItem($productId, $product->getStore()->getWebsiteId());
+            if($stockItem->getQty() < 1) continue;
 
             $images = $this->getGalleryImages($product);
             if ($images) {
@@ -43,7 +69,6 @@ class Data extends \Magento\ConfigurableProduct\Helper\Data
                 $options['index'][$productId][$productAttributeId] = $attributeValue;
             }
         }
-
         return $options;
     }
 }
