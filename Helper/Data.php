@@ -3,6 +3,7 @@
 namespace JanSoft\ConfigurableProduct\Helper;
 
 use Magento\Catalog\Helper\Image as ImageHelper;
+use Magento\CatalogInventory\Model\Spi\StockStateProviderInterface;
 use Magento\ConfigurableProduct\Helper\Data as ConfigurableHelper;
 use Magento\CatalogInventory\Api\StockRegistryInterface;
 
@@ -18,6 +19,11 @@ class Data extends ConfigurableHelper
     protected $stockRegistry;
 
     /**
+     * @var StockStateProviderInterface
+     */
+    protected $stockStateProvider;
+
+    /**
      * Data constructor.
      *
      * @param \Magento\Catalog\Helper\Image                        $imageHelper
@@ -25,10 +31,12 @@ class Data extends ConfigurableHelper
      */
     public function __construct(
         ImageHelper $imageHelper,
-        StockRegistryInterface $stockRegistry
+        StockRegistryInterface $stockRegistry,
+        StockStateProviderInterface $stockStateProvider
     ){
         parent::__construct($imageHelper);
         $this->stockRegistry = $stockRegistry;
+        $this->stockStateProvider = $stockStateProvider;
     }
 
     /**
@@ -45,7 +53,8 @@ class Data extends ConfigurableHelper
             $productId = $product->getId();
 
             $stockItem = $this->stockRegistry->getStockItem($productId, $product->getStore()->getWebsiteId());
-            if($stockItem->getQty() < 1) continue;
+
+            if (!$stockItem->getIsInStock() || $stockItem->getQty() < 1) continue;
 
             $images = $this->getGalleryImages($product);
             if ($images) {
